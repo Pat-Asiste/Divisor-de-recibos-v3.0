@@ -1,67 +1,16 @@
+// v3.0 Divisor de recibos
 
-// import './App.css'
+// .map // .toFixed(2) // Number()                  // USADO: metodos y fn nativas:
+// ------------------------------------------
+import './App.css';
+import './Components/PersonaRateList.css';
+
 import { useEffect, useState } from 'react';
-
-let data = [
-  {
-    id: 1,
-    name: "Persona1",
-    proporcion: 42.15,
-  },
-  {
-    id: 2,
-    name: "Persona2",
-    proporcion: 87.03,
-  },
-  {
-    id: 3,
-    name: "Persona3",
-    proporcion: 15.49,
-  },
-  {
-    id: 4,
-    name: "Persona4",
-    proporcion: 63.81,
-  },
-  {
-    id: 5,
-    name: "Persona5",
-    proporcion: 29.74,
-  }
-];
-
-let miConfig = {
-  // numberOfPeople: 0,                                     // descontinuado
-  // montoTotal: 1000,                                      // descontinuado.
-  operacion: "proporcional",
-};
 
 
 function App() {
-  // In-Memory Logger (with Vite,react...):
-  let logs = "";                                                      // este 'logs' en memoria, reemplaza al console.log
-  const postLogData = (texto) => (logs += texto + "\n");              // POST  log
-  const getLoggedData = () => (logs);                                 // GET   logs
-  const printLoggedData = () => (console.log(logs));                  // PRINT logs
 
-
-  function registrarMontosProporcionalmente(datos, { operacion }, Total) {
-    if (operacion === "proporcional") {
-      // regla de tres simple (vinculado,origen,tercerT,x)
-      const vinculado = datos.reduce((acc, manData) => acc + manData.proporcion, 0);
-      const origen = Total;
-      for (let i = 0; i < datos.length; i++) {
-        const tercerT = datos[i].proporcion;
-        const subTotal = Number(((origen * tercerT / vinculado) + 0.01).toFixed(2));
-        postLogData(`${i + 1}) S/. ${subTotal}`);
-      }
-      postLogData(`Monto Total = S/. ${Total}`);
-    } else {
-      console.log("Error: El tipo de operación es inválida. Favor de corregir.");
-    };
-
-  };
-  const [nofPeople, setNofPeople] = useState(4);
+  const [nofPersonas, setNofPersonas] = useState(4);
   const [total, setTotal] = useState(1000);
 
   let input = undefined;
@@ -69,20 +18,139 @@ function App() {
     input = Number(prompt("Ingrese el monto a particionar (en soles).", total));
   }, []);
   useEffect(() => { if (input != total) { setTotal(input) } }, [input])
-  registrarMontosProporcionalmente(data, miConfig, total);
 
+  function registrarGente(setDatos, nofGente) {
+    setDatos([]);
+    for (let i = 0; i < nofGente; i++) {
+      setDatos((prev) => ([...prev, { id: i, name: `Persona${i + 1}`, rate: 1 }]))
+    }
+  }
+
+  function reemplazarRate({ id, newRate }, setDatos) {
+    if (newRate >= 1) {
+      setDatos((prev) => (                                            // '.map method' -- devuelve un nuevo array
+        prev.map((persona) => (persona.id === id ? { ...persona, rate: Number(newRate) } : persona))
+      ));
+    }
+  }
+
+  function editarRate(id, rateVariation, setDatos) {                            // -----------------------------------------------
+    setDatos((prev) => (                                                            // guarda los cambios
+      prev.map((person) => {                                                        // return -- un nuevo array       (db2)
+        const newTasa = person.rate + Number(rateVariation);
+        const filtro = newTasa >= 1 && person.id === id;
+        if (filtro) {
+          return { ...person, rate: newTasa }                                       // return -- el array actualizado (db2)-----------
+        } else {
+          return person
+        };
+      })));
+  };
+
+  const [personas, setPersonas] = useState([]);
+  useEffect(() => (registrarGente(setPersonas, nofPersonas)), [nofPersonas]);
+  console.log(personas);
+
+  const vinculado2 = personas.reduce((acc, p) => (acc + p.rate), 0)
 
   return (
-    <>
-      <pre style={{ fontSize: "medium", fontFamily: "sans-serif", fontWeight: "bold" }}>{getLoggedData()}</pre><br />
-      <form action="">
-        <label htmlFor="total">Monto Total:</label>
-        <input type='number' id='total' value={total}></input><br />              {/* input.name:""  --  se usa solo cuando hay backend */}
-        <label htmlFor="nofPeople">N° de Personas:</label>
-        <input type='number' id='nofPeople' min={2} defaultValue={nofPeople} onChange={(e) => (setNofPeople(e.target.value))}></input>
+    <div className="container">
+      <h3 className="title">Creador de recibos</h3>
+
+      {/* Formulario de parámetros principales */}
+      <form className="form-group" onSubmit={(e) => e.preventDefault()}>
+        <div className="form-field">
+          <label htmlFor="total" className="label">
+            Monto Total (S/.):
+          </label>
+          <input
+            type="number"
+            id="total"
+            value={total}
+            readOnly
+            className="input form-input"
+          />
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="nofPersonas" className="label">
+            N° de Personas:
+          </label>
+          <input
+            type="number"
+            id="nofPersonas"
+            min={2}
+            max={9}
+            defaultValue={nofPersonas}
+            onChange={(e) => setNofPersonas(e.target.value)}
+            className="input form-input"
+          />
+        </div>
       </form>
-    </>
-  )
+
+      <hr className="divider" />
+
+      {/* Lista ordenada de desglose */}
+      <ol className="list">
+        {personas.map(({ id, name, rate }) => (
+          <li key={id} className="list-item">
+            <div className="content-wrapper">
+
+              {/* Contenedor 1: Precio y Nombre */}
+              <div className="info-group">
+                <span className="price">
+                  S/. {((total * rate) / vinculado2).toFixed(2)}
+                </span>
+                <span className="separator">—</span>
+                <span className="name">{name}</span>
+              </div>
+
+              {/* Contenedor 2: Input numérico y Botones de edición */}
+              <div className="action-group">
+                <span className="prop-label">
+                  (prop.
+                  <input
+                    type="number"
+                    min={1}
+                    value={rate}
+                    onChange={(e) =>
+                      reemplazarRate({ id, newRate: e.target.value }, setPersonas)
+                    }
+                    className="input rate-input"
+                  />
+                  )
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => editarRate(id, "-1", setPersonas)}
+                  className="step-button"
+                  aria-label="Disminuir proporción"
+                >
+                  –
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => editarRate(id, "+1", setPersonas)}
+                  className="step-button"
+                  aria-label="Aumentar proporción"
+                >
+                  +
+                </button>
+              </div>
+
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      {/* Resumen final homogeneizado */}
+      <div className="summary-footer">
+        Monto Total: <span className="summary-total">S/. <b>{total}</b></span>
+      </div>
+    </div>
+  );
 }
 
 export default App
